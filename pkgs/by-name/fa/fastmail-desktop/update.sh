@@ -17,6 +17,15 @@ x86_64_linux_url="https://dl.fastmailcdn.com/desktop/production/linux/x64/$(yq -
 aarch64_linux_url="https://dl.fastmailcdn.com/desktop/production/linux/arm64/$(yq -r '.path' <<<"$aarch64_linux_info")"
 aarch64_darwin_url="https://dl.fastmailcdn.com/desktop/production/mac/arm64/$(yq -r '.path' <<<"$aarch64_darwin_info")"
 
+# The manifests sometimes advertise files that are not actually served,
+# so fail loudly instead of writing dead URLs into sources.nix.
+for url in "$x86_64_linux_url" "$aarch64_linux_url" "$aarch64_darwin_url"; do
+  if ! curl -fsSI "$url" >/dev/null; then
+    echo "error: $url is advertised by the update manifest but not served" >&2
+    exit 1
+  fi
+done
+
 x86_64_linux_hash=$(nix-hash --type sha512 --to-sri "$(yq -r '.sha512' <<<"$x86_64_linux_info")")
 aarch64_linux_hash=$(nix-hash --type sha512 --to-sri "$(yq -r '.sha512' <<<"$aarch64_linux_info")")
 aarch64_darwin_hash=$(nix-hash --type sha512 --to-sri "$(yq -r '.sha512' <<<"$aarch64_darwin_info")")
